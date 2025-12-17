@@ -199,3 +199,158 @@ Vi kan nu fylla i alla tal.
 
 ![image](./images/AssociativeInput.png)
 
+# MIPS Single Cycle Execution
+![image](./images/MipsSingleCycleExecution.png)
+## Översikt
+
+Uppgiften lyder som följande:
+
+Assume the program, MIps Code (Single Cycle) and the Mips Code View (with the expanded pseudo instructions),
+has reached the "addiu rt rs expr" / "sb rt addr" / (något liknande) the first time (PC register = **0x0000001X**).
+Fill out the below table.
+
+32 bit signals should be given in hex (e.g. 0x12345678), while 5 bit signals should be given in binary form (e.g. 01010b).
+
+## Steg 0: Vilken instruktion används
+
+| Instruction       | Class      |
+|-------------------|------------|
+| add, sub, and, or | R-type ALU |
+| addi, addiu, slti | I-type ALU |
+| lw                | Load       |
+| sw, sb            | Store      |
+| beq, bne          | Branch     |
+| j, jal            | Jump       |
+
+Oftast är det addi eller addiu, har även sätt sb.
+
+## A
+I single cycle MIPS så ökar alltid PC med 4, så om `PC = 0x00000014` så blir 
+`A = PC+4 = 0x00000014+4 = 0x00000018`
+## B
+Kolla på vilket register som används för **rs**, du bör kunna tabellen nedan.
+| Register | Number | Binary |
+|----------|--------|--------|
+| $t0      | 8      | 01000  |
+| $t1      | 9      | 01001  |
+| $t2      | 10     | 01010  |
+| $t3      | 11     | 01011  |
+| $s0      | 16     | 10000  |
+
+Svaret är alltid det binära värdet,
+exempel:
+sb $t3, 0($t1) -> register $t1 -> B = 01001b
+addiu $t3, $t3, -32 -> register $t3 -> B = 01011b
+
+## C
+Kolla på vilket register som används för **rt**, sen är det alltid det binära värdet enligt tabellen.
+Exempel:
+sb $t3, 0($t1) -> register $t3 -> B = 01011b
+addiu $t3, $t3, -32 -> register $t3 -> B = 01011b
+
+## D
+idk
+
+## E
+ALU second input. E = D.
+
+## F
+Med största sannolikhet 0x00000000
+
+## G
+sb - unused
+addiu - idk
+
+## H
+sb - H = C
+addiu - unused
+
+## I
+reversed H, so:
+sb - not used
+addiu - H=C
+
+## J
+sb - J=H=C
+addiu - J=A
+
+## K
+sb - pray
+addiu - not used
+
+## L
+Same as PC
+
+## Key takeaways
+Basically 2 catagories:
+* sb
+  * A = 4+PC
+  * Kom ihåg register, alltid andra
+  * Kom ihåg register, alltid första, C=H=J
+  * D=E=?, K=?
+  * F = 0x0000000
+  * G, I unused
+  * L = PC
+* addiu
+  * A=4+PC
+  * Kommer antagligen bli B=I=C
+  * D,E,F,G ingen aning
+  * H & K not used
+  * L = PC
+
+# Instruction Encoding
+Så som exempel: `addiu $t3, $t3, -32`
+
+addiu är en I-type instruktion med 32 bits totalt:
+
+---------------------------------------
+| op (6) | rs (5) | rt (5) | imm (16) |
+---------------------------------------
+
+Så vi vet att för op måste vi fylla i 6 bits, för rs 5 bits o.s.v.
+Enligt följande tabell (som man bör plugga in):
+| Register | Number | Binary |
+|----------|--------|--------|
+| $t0      | 8      | 01000  |
+| $t1      | 9      | 01001  |
+| $t2      | 10     | 01010  |
+| $t3      | 11     | 01011  |
+| $s0      | 16     | 10000  |
+
+Svaret för op = 001001b, svaret står på MIPS green card (opcode)
+Svaret för rs = 01001b eftersom $t3 = 01011 (kom ihåg att svara rätt antal bits)
+Svaret för rt = 01001b eftersom $t3 = 01011 (kom ihåg att svara rätt antal bits)
+
+Så hitils är det lätt,
+`addiu $t3, $t3, -32` översatt blir `op rt, rs, imm`
+För imm måste man encoda -32 som en 16-bit 2's komplement nummer.
+
+* Skriv ut imm i en 16-bitars binary:
+  - 32 = 0000000000100000
+* Invertera:
+  - 0000000000100000 => 1111111111011111
+* Lägg till 1 (2's kompliment)
+  - Binary addition:
+  -  1111111111011111
+  - +               1
+  - -----------------
+  -  1111111111100000
+Så i det här fallet är svaret för imm = 1111111111100000b = 0xFFE0
+Om det istället skulle vara `addiu $t3, $t3, 32`, altså att imm är posetivt, skulle svaret bara vara
+32 utskrivet binärt, så `0000000000100000`.
+
+# MAX Frequency
+Gratis uppgift.
+Du får något i stil med:
+![image](/images/maxfreq.png)
+
+"The clockperiod is determined by the slowest pipeline stage since;
+All stages must complete within one clock cycle and the clock must 
+be slow enough for the longest stage."
+
+Så i det här fallet är det långsammaste 20ns:
+
+*T_clock* = max(stage delays)
+*f_max* = 1 / *T_clock* = 1 / (20 * 10⁽⁻⁹⁾) = 50 * 10⁶ Hz = 50 MHz
+
+
